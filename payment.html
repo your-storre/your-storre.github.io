@@ -400,7 +400,7 @@
         const ghsAmount = document.getElementById('ghs-amount');
         
         // Current exchange rate (1 USD to GHS)
-        const exchangeRate = 12.32;
+        const exchangeRate = 10.32;
         
         // Function to convert USD to GHS and update all relevant fields
         function updateCurrencyValues(usdValue) {
@@ -422,7 +422,7 @@
                     const deliveryData = snapshot.val();
                     
                     // Display payment information
-                    const serviceFee = 5; // Fixed service fee
+                    const serviceFee = 0; // Fixed service fee
                     const total = deliveryData.deliveryCost + serviceFee;
                     
                     deliveryCost.textContent = '$' + deliveryData.deliveryCost.toFixed(2);
