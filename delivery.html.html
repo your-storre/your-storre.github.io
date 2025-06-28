@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Delivery | YourStore</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #f9fafb;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background-color: var(--secondary);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .back-link {
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .page-title {
+            text-align: center;
+            margin: 2rem 0;
+            color: var(--dark);
+        }
+        
+        .delivery-form {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            background-color: #4338ca;
+        }
+        
+        .delivery-cost {
+            background-color: var(--light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        
+        .delivery-cost h3 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .cost-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo">YourStore</a>
+                <a href="index.html" class="back-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                    </svg>
+                    Back to Order
+                </a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <h1 class="page-title">Book Your Delivery</h1>
+            
+            <div class="delivery-form">
+                <form id="deliveryForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="first-name">First Name</label>
+                            <input type="text" id="first-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="last-name">Last Name</label>
+                            <input type="text" id="last-name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="address">Street Address</label>
+                        <input type="text" id="address" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="city">City</label>
+                            <input type="text" id="city" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="zip">ZIP/Postal Code</label>
+                            <input type="text" id="zip" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <select id="country" required>
+                            <option value="">Select Country</option>
+                            <option value="Ghana">Ghana</option>
+                            <option value="Nigeria">Nigeria</option>
+                            <option value="South Africa">South Africa</option>
+                            <option value="Kenya">Kenya</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="instructions">Delivery Instructions (Optional)</label>
+                        <textarea id="instructions" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="delivery-cost">
+                        <h3>Estimated Delivery Cost</h3>
+                        <p id="delivery-estimate">Select your country to calculate delivery cost</p>
+                        <div class="cost-amount" id="delivery-cost">-</div>
+                    </div>
+                    
+                    <button type="submit" class="btn">Proceed to Payment</button>
+                </form>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 YourStore. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "deliverybookingsystem-2b0b9.firebaseapp.com",
+            databaseURL: "https://deliverybookingsystem-2b0b9-default-rtdb.firebaseio.com",
+            projectId: "deliverybookingsystem-2b0b9",
+            storageBucket: "deliverybookingsystem-2b0b9.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Get order number from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderNumber = urlParams.get('order');
+        
+        if (!orderNumber) {
+            window.location.href = 'index.html';
+        }
+        
+        // Delivery cost calculator
+        const countrySelect = document.getElementById('country');
+        const deliveryEstimate = document.getElementById('delivery-estimate');
+        const deliveryCostDisplay = document.getElementById('delivery-cost');
+        
+        countrySelect.addEventListener('change', () => {
+            const country = countrySelect.value;
+            let cost = 0;
+            
+            if (!country) {
+                deliveryEstimate.textContent = 'Select your country to calculate delivery cost';
+                deliveryCostDisplay.textContent = '-';
+                return;
+            }
+            
+            // Sample delivery costs - you should replace with your actual pricing
+            switch(country) {
+                case 'Ghana':
+                    cost = 50;
+                    deliveryEstimate.textContent = 'Standard delivery within 3-5 business days';
+                    break;
+                case 'Nigeria':
+                    cost = 75;
+                    deliveryEstimate.textContent = 'Standard delivery within 5-7 business days';
+                    break;
+                case 'South Africa':
+                    cost = 100;
+                    deliveryEstimate.textContent = 'Standard delivery within 7-10 business days';
+                    break;
+                case 'Kenya':
+                    cost = 90;
+                    deliveryEstimate.textContent = 'Standard delivery within 7-10 business days';
+                    break;
+                default:
+                    cost = 120;
+                    deliveryEstimate.textContent = 'International delivery within 10-14 business days';
+            }
+            
+            deliveryCostDisplay.textContent = '$' + cost;
+        });
+        
+        // Form submission
+        const deliveryForm = document.getElementById('deliveryForm');
+        
+        deliveryForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const deliveryData = {
+                orderNumber: orderNumber,
+                firstName: document.getElementById('first-name').value,
+                lastName: document.getElementById('last-name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                city: document.getElementById('city').value,
+                zip: document.getElementById('zip').value,
+                country: document.getElementById('country').value,
+                instructions: document.getElementById('instructions').value,
+                deliveryCost: parseFloat(deliveryCostDisplay.textContent.replace('$', '')) || 0,
+                status: 'Pending Payment',
+                createdAt: new Date().toISOString()
+            };
+            
+            // Save delivery information
+            database.ref('deliveries/' + orderNumber).set(deliveryData)
+                .then(() => {
+                    window.location.href = 'payment.html?order=' + orderNumber;
+                })
+                .catch((error) => {
+                    console.error('Error saving delivery:', error);
+                    alert('An error occurred while saving your delivery information. Please try again.');
+                });
+        });
+        
+        // Load order details to verify
+        database.ref('orders/' + orderNumber).once('value')
+            .then((snapshot) => {
+                if (!snapshot.exists()) {
+                    window.location.href = 'index.html';
+                }
+            });
+    </script>
+</body>
+</html>

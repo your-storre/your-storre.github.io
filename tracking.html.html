@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Tracking | YourStore</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #f9fafb;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background-color: var(--secondary);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .back-link {
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .page-title {
+            text-align: center;
+            margin: 2rem 0;
+            color: var(--dark);
+        }
+        
+        .tracking-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .order-summary {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+        
+        .order-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        
+        .order-text h3 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .tracking-status {
+            margin: 2rem 0;
+        }
+        
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        
+        .current-status {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .tracking-timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline-line {
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #e5e7eb;
+        }
+        
+        .timeline-step {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+        
+        .timeline-step:last-child {
+            padding-bottom: 0;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            left: -30px;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            border: 4px solid white;
+        }
+        
+        .timeline-step.active .timeline-dot {
+            background-color: var(--primary);
+        }
+        
+        .timeline-step.completed .timeline-dot {
+            background-color: var(--success);
+        }
+        
+        .timeline-step.delayed .timeline-dot {
+            background-color: var(--warning);
+        }
+        
+        .timeline-step.cancelled .timeline-dot {
+            background-color: var(--danger);
+        }
+        
+        .timeline-content h4 {
+            margin-bottom: 0.25rem;
+        }
+        
+        .timeline-date {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .timeline-message {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background-color: var(--light);
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+        
+        .delivery-details {
+            margin-top: 2rem;
+            background-color: var(--light);
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .detail-item h4 {
+            margin-bottom: 0.25rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .detail-item p {
+            font-weight: 500;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+            .order-summary {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="index.html" class="logo">YourStore</a>
+                <a href="index.html" class="back-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                    </svg>
+                    Back to Home
+                </a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <h1 class="page-title">Delivery Tracking</h1>
+            
+            <div class="tracking-container">
+                <div class="order-summary">
+                    <img id="tracking-product-image" class="order-image" src="" alt="Product Image">
+                    <div class="order-text">
+                        <h3 id="tracking-product-name">Product Name</h3>
+                        <p>Order #<span id="tracking-order-number">ORD-123456</span></p>
+                    </div>
+                </div>
+                
+                <div class="tracking-status">
+                    <div class="status-header">
+                        <h3>Delivery Status</h3>
+                        <span class="current-status" id="current-status-text">Processing</span>
+                    </div>
+                    
+                    <div class="tracking-timeline" id="timeline">
+                        <div class="timeline-line"></div>
+                        
+                        <!-- Timeline steps will be added dynamically -->
+                    </div>
+                </div>
+                
+                <div class="delivery-details">
+                    <h3>Delivery Information</h3>
+                    <div class="details-grid" id="delivery-details-grid">
+                        <!-- Delivery details will be added dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 YourStore. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "deliverybookingsystem-2b0b9.firebaseapp.com",
+            databaseURL: "https://deliverybookingsystem-2b0b9-default-rtdb.firebaseio.com",
+            projectId: "deliverybookingsystem-2b0b9",
+            storageBucket: "deliverybookingsystem-2b0b9.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Get order number from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderNumber = urlParams.get('order');
+        
+        if (!orderNumber) {
+            window.location.href = 'index.html';
+        }
+        
+        // DOM elements
+        const trackingProductImage = document.getElementById('tracking-product-image');
+        const trackingProductName = document.getElementById('tracking-product-name');
+        const trackingOrderNumber = document.getElementById('tracking-order-number');
+        const currentStatusText = document.getElementById('current-status-text');
+        const timeline = document.getElementById('timeline');
+        const deliveryDetailsGrid = document.getElementById('delivery-details-grid');
+        
+        // Status definitions
+        const statusDefinitions = {
+            'Payment Pending Verification': {
+                title: 'Payment Verification',
+                description: 'We are verifying your payment details'
+            },
+            'Payment Confirmed': {
+                title: 'Payment Confirmed',
+                description: 'Your payment has been verified and confirmed'
+            },
+            'Processing': {
+                title: 'Order Processing',
+                description: 'Your order is being prepared for shipment'
+            },
+            'Shipped': {
+                title: 'Shipped',
+                description: 'Your order has been shipped'
+            },
+            'In Transit': {
+                title: 'In Transit',
+                description: 'Your order is on its way'
+            },
+            'Out for Delivery': {
+                title: 'Out for Delivery',
+                description: 'Your order is with the delivery driver'
+            },
+            'Delivered': {
+                title: 'Delivered',
+                description: 'Your order has been delivered'
+            },
+            'Delayed': {
+                title: 'Delivery Delayed',
+                description: 'Your delivery has been delayed'
+            },
+            'Cancelled': {
+                title: 'Cancelled',
+                description: 'Your delivery has been cancelled'
+            }
+        };
+        
+        // Timeline steps in order
+        const timelineSteps = [
+            'Payment Pending Verification',
+            'Payment Confirmed',
+            'Processing',
+            'Shipped',
+            'In Transit',
+            'Out for Delivery',
+            'Delivered'
+        ];
+        
+        // Load order and delivery details
+        function loadOrderDetails() {
+            // Load order details
+            database.ref('orders/' + orderNumber).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const orderData = snapshot.val();
+                        
+                        trackingProductName.textContent = orderData.productName;
+                        trackingOrderNumber.textContent = orderNumber;
+                        trackingProductImage.src = orderData.productImage || 'https://via.placeholder.com/400';
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                });
+            
+            // Load delivery details
+            database.ref('deliveries/' + orderNumber).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const deliveryData = snapshot.val();
+                        
+                        // Update current status
+                        currentStatusText.textContent = deliveryData.status;
+                        
+                        // Render timeline
+                        renderTimeline(deliveryData.status, deliveryData.statusHistory || {});
+                        
+                        // Render delivery details
+                        renderDeliveryDetails(deliveryData);
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                });
+        }
+        
+        // Render timeline
+        function renderTimeline(currentStatus, statusHistory) {
+            timeline.innerHTML = '<div class="timeline-line"></div>';
+            
+            timelineSteps.forEach(step => {
+                const stepElement = document.createElement('div');
+                stepElement.className = 'timeline-step';
+                
+                // Check if this step is completed, active, or pending
+                if (statusHistory[step]) {
+                    stepElement.classList.add('completed');
+                } else if (step === currentStatus) {
+                    stepElement.classList.add('active');
+                }
+                
+                // Special cases for delayed or cancelled
+                if (currentStatus === 'Delayed' && (step === 'In Transit' || step === 'Out for Delivery')) {
+                    stepElement.classList.add('delayed');
+                } else if (currentStatus === 'Cancelled') {
+                    stepElement.classList.add('cancelled');
+                }
+                
+                stepElement.innerHTML = `
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <h4>${statusDefinitions[step]?.title || step}</h4>
+                        <div class="timeline-date">${statusHistory[step] ? new Date(statusHistory[step]).toLocaleString() : ''}</div>
+                        ${currentStatus === step && statusDefinitions[step]?.description ? 
+                            `<div class="timeline-message">${statusDefinitions[step].description}</div>` : ''}
+                    </div>
+                `;
+                
+                timeline.appendChild(stepElement);
+            });
+        }
+        
+        // Render delivery details
+        function renderDeliveryDetails(deliveryData) {
+            const details = [
+                { label: 'Recipient', value: `${deliveryData.firstName} ${deliveryData.lastName}` },
+                { label: 'Delivery Address', value: deliveryData.address },
+                { label: 'City', value: deliveryData.city },
+                { label: 'Country', value: deliveryData.country },
+                { label: 'Phone Number', value: deliveryData.phone },
+                { label: 'Email', value: deliveryData.email },
+                { label: 'Delivery Cost', value: `$${deliveryData.deliveryCost?.toFixed(2) || '0.00'}` },
+                { label: 'Payment Status', value: deliveryData.status.includes('Payment') ? deliveryData.status : 'Paid' }
+            ];
+            
+            deliveryDetailsGrid.innerHTML = '';
+            
+            details.forEach(detail => {
+                const detailElement = document.createElement('div');
+                detailElement.className = 'detail-item';
+                detailElement.innerHTML = `
+                    <h4>${detail.label}</h4>
+                    <p>${detail.value}</p>
+                `;
+                deliveryDetailsGrid.appendChild(detailElement);
+            });
+        }
+        
+        // Set up real-time listener for status changes
+        function setupStatusListener() {
+            database.ref('deliveries/' + orderNumber).on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const deliveryData = snapshot.val();
+                    currentStatusText.textContent = deliveryData.status;
+                    renderTimeline(deliveryData.status, deliveryData.statusHistory || {});
+                }
+            });
+        }
+        
+        // Initialize
+        loadOrderDetails();
+        setupStatusListener();
+    </script>
+</body>
+</html>
