@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Instructions | YourStore</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
             --primary: #4f46e5;
@@ -332,6 +330,34 @@
             color: #b91c1c;
             border: 1px solid #fca5a5;
         }
+        
+        /* Waiting verification page */
+        .waiting-verification {
+            text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+        
+        .waiting-verification.hidden {
+            display: none;
+        }
+        
+        .verification-status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 500;
+            margin: 1rem 0;
+        }
+        
+        .pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
     </style>
 </head>
 <body>
@@ -339,7 +365,7 @@
         <div class="container">
             <nav class="navbar">
                 <a href="index.html" class="logo">YourStore</a>
-                <a href="delivery.html" class="back-link">
+                <a href="delivery.html?order=ORD-123456" class="back-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
                     </svg>
@@ -356,6 +382,7 @@
             <!-- Status message for declined payments -->
             <div id="status-message" class="status-message status-error hidden"></div>
             
+            <!-- Main Payment Container -->
             <div class="payment-container">
                 <div class="payment-summary">
                     <h3>Delivery Payment Summary</h3>
@@ -449,13 +476,24 @@
                     <button id="confirm-payment" class="btn" disabled>I've Made Payment</button>
                     <button id="cancel-payment" class="btn btn-outline">Cancel</button>
                 </div>
-                
-                <div id="processing-payment" class="processing-message hidden">
-                    <div class="spinner"></div>
-                    <h3>Processing Your Payment</h3>
-                    <p>We are verifying your payment. This may take a few minutes. You'll be notified once your payment is confirmed.</p>
-                    <p>You can close this page and check back later. We'll update your order status automatically.</p>
-                </div>
+            </div>
+            
+            <!-- Processing Payment Message -->
+            <div id="processing-payment" class="processing-message hidden">
+                <div class="spinner"></div>
+                <h3>Processing Your Payment</h3>
+                <p>We are verifying your payment. This may take a few minutes.</p>
+            </div>
+            
+            <!-- Waiting Verification Page -->
+            <div id="waiting-verification" class="waiting-verification hidden">
+                <div class="spinner"></div>
+                <h3>Payment Verification in Progress</h3>
+                <p>Thank you for your payment submission!</p>
+                <p>Your payment proof is being reviewed by our team.</p>
+                <p>This page will automatically update once your payment is verified.</p>
+                <p>You'll receive an email notification with the verification result.</p>
+                <div class="verification-status pending">Status: Pending Verification</div>
             </div>
         </div>
     </main>
@@ -466,9 +504,9 @@
         </div>
     </footer>
     
-    <!-- Font Awesome for icons -->
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <script>
         // Firebase configuration
         const firebaseConfig = {
@@ -504,6 +542,8 @@
         const confirmPaymentBtn = document.getElementById('confirm-payment');
         const cancelPaymentBtn = document.getElementById('cancel-payment');
         const processingPayment = document.getElementById('processing-payment');
+        const waitingVerification = document.getElementById('waiting-verification');
+        const paymentContainer = document.querySelector('.payment-container');
         const statusMessage = document.getElementById('status-message');
         
         // Currency converter elements
@@ -525,21 +565,49 @@
         let paymentProofFile = null;
         let paymentProofUrl = '';
         
-        // Check if there's a declined payment status
+        // Check initial payment status
         checkPaymentStatus();
         
         // Function to check payment status
         function checkPaymentStatus() {
-            database.ref('deliveries/' + orderNumber).once('value')
-                .then((snapshot) => {
-                    if (snapshot.exists()) {
-                        const delivery = snapshot.val();
-                        if (delivery.paymentVerified === false && delivery.status === 'Payment Declined') {
-                            statusMessage.textContent = delivery.statusMessage || 'Your previous payment was declined. Please upload a valid proof of payment.';
-                            statusMessage.classList.remove('hidden');
-                        }
+            database.ref('deliveries/' + orderNumber).on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const delivery = snapshot.val();
+                    
+                    if (delivery.status === 'Payment Confirmed') {
+                        // Payment verified, redirect to tracking
+                        window.location.href = 'tracking.html?order=' + orderNumber;
+                    } 
+                    else if (delivery.paymentVerified === false && delivery.status === 'Payment Declined') {
+                        // Payment declined, show message
+                        showPaymentPage();
+                        statusMessage.textContent = delivery.statusMessage || 'Your payment was declined. Please upload valid proof.';
+                        statusMessage.classList.remove('hidden');
                     }
-                });
+                    else if (delivery.status === 'Payment Pending Verification') {
+                        // Show waiting page
+                        showWaitingPage();
+                    }
+                }
+            });
+        }
+        
+        function showPaymentPage() {
+            paymentContainer.classList.remove('hidden');
+            processingPayment.classList.add('hidden');
+            waitingVerification.classList.add('hidden');
+        }
+        
+        function showWaitingPage() {
+            paymentContainer.classList.add('hidden');
+            processingPayment.classList.add('hidden');
+            waitingVerification.classList.remove('hidden');
+        }
+        
+        function showProcessing() {
+            paymentContainer.classList.add('hidden');
+            processingPayment.classList.remove('hidden');
+            waitingVerification.classList.add('hidden');
         }
         
         // Function to convert USD to GHS and update all relevant fields
@@ -576,6 +644,10 @@
                 } else {
                     window.location.href = 'index.html';
                 }
+            })
+            .catch((error) => {
+                console.error('Error loading delivery data:', error);
+                window.location.href = 'index.html';
             });
         
         // Handle proof of payment upload
@@ -625,6 +697,7 @@
             paymentProofInput.value = '';
             proofPreview.style.display = 'none';
             proofUpload.style.display = 'flex';
+            confirmPaymentBtn.disabled = true;
         });
         
         // Handle remove proof
@@ -662,43 +735,47 @@
         
         // Confirm payment
         confirmPaymentBtn.addEventListener('click', async () => {
-            // Show processing message
-            confirmPaymentBtn.classList.add('hidden');
-            cancelPaymentBtn.classList.add('hidden');
-            processingPayment.classList.remove('hidden');
+            if (!paymentProofFile) {
+                alert('Please upload proof of payment first');
+                return;
+            }
+
+            showProcessing();
             
             try {
-                let proofUrl = '';
+                // Upload proof to Firebase Storage
+                const storageRef = storage.ref(`payment_proofs/${orderNumber}/${Date.now()}_${paymentProofFile.name}`);
+                const uploadTask = storageRef.put(paymentProofFile);
                 
-                // Upload proof to Firebase Storage if file exists
-                if (paymentProofFile) {
-                    const storageRef = storage.ref(`payment_proofs/${orderNumber}/${paymentProofFile.name}`);
-                    const snapshot = await storageRef.put(paymentProofFile);
-                    proofUrl = await snapshot.ref.getDownloadURL();
-                }
-                
-                // Update delivery status to "Payment Pending Verification"
-                await database.ref('deliveries/' + orderNumber).update({
-                    status: 'Payment Pending Verification',
-                    paymentSubmittedAt: new Date().toISOString(),
-                    paymentProof: proofUrl || '',
-                    paymentProofName: paymentProofFile ? paymentProofFile.name : '',
-                    paymentVerified: null,
-                    statusMessage: ''
-                });
-                
-                // Redirect to tracking after 3 seconds
-                setTimeout(() => {
-                    window.location.href = 'tracking.html?order=' + orderNumber;
-                }, 3000);
+                uploadTask.on('state_changed',
+                    null,
+                    (error) => {
+                        console.error('Upload error:', error);
+                        showPaymentPage();
+                        alert('Failed to upload payment proof. Please try again.');
+                    },
+                    async () => {
+                        // Get download URL
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        
+                        // Update delivery status
+                        await database.ref('deliveries/' + orderNumber).update({
+                            status: 'Payment Pending Verification',
+                            paymentSubmittedAt: new Date().toISOString(),
+                            paymentProofURL: downloadURL,
+                            paymentProofName: paymentProofFile.name,
+                            paymentVerified: null,
+                            statusMessage: ''
+                        });
+                        
+                        // Show waiting page
+                        showWaitingPage();
+                    }
+                );
             } catch (error) {
-                console.error('Error updating payment status:', error);
-                alert('An error occurred. Please try again.');
-                
-                // Reset buttons
-                confirmPaymentBtn.classList.remove('hidden');
-                cancelPaymentBtn.classList.remove('hidden');
-                processingPayment.classList.add('hidden');
+                console.error('Error:', error);
+                showPaymentPage();
+                alert('Payment submission failed. Please try again.');
             }
         });
         
