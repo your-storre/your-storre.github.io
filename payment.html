@@ -252,71 +252,6 @@
             font-weight: 600;
             color: var(--dark);
         }
-        
-        /* Proof of Payment Styles */
-        .proof-section {
-            margin-top: 2rem;
-            background-color: var(--light);
-            padding: 1.5rem;
-            border-radius: 8px;
-        }
-        
-        .proof-section h3 {
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-        
-        .proof-upload {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2rem;
-            border: 2px dashed #cbd5e1;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 1rem;
-        }
-        
-        .proof-upload:hover {
-            border-color: var(--primary);
-            background-color: rgba(79, 70, 229, 0.05);
-        }
-        
-        .proof-upload i {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-        
-        .proof-upload input {
-            display: none;
-        }
-        
-        .proof-preview {
-            margin-top: 1rem;
-            max-width: 100%;
-            display: none;
-        }
-        
-        .proof-preview img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .proof-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        
-        .proof-note {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-top: 1rem;
-        }
     </style>
 </head>
 <body>
@@ -374,7 +309,7 @@
                 
                 <div class="payment-instructions">
                     <h2>How to Pay Your Delivery Fee</h2>
-                    <p>Please follow the instructions below to complete your payment. Once payment is made, upload proof of payment and click the "I've Made Payment" button below.</p>
+                    <p>Please follow the instructions below to complete your payment. Once payment is made, click the "I've Made Payment" button below.</p>
                     
                     <div class="payment-method">
                         <h3> Mobile Money Payment (MTN, Vodafone, AirtelTigo)</h3>
@@ -404,31 +339,8 @@
                     </div>
                 </div>
                 
-                <!-- Proof of Payment Section -->
-                <div class="proof-section">
-                    <h3>Upload Proof of Payment</h3>
-                    <p>Please upload a screenshot or photo of your payment confirmation or transaction receipt.</p>
-                    
-                    <div class="proof-upload" id="proof-upload">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Click to upload or drag and drop</p>
-                        <p>PNG, JPG, or PDF (Max. 5MB)</p>
-                        <input type="file" id="payment-proof" accept="image/*,.pdf">
-                    </div>
-                    
-                    <div class="proof-preview" id="proof-preview">
-                        <img id="proof-image" src="#" alt="Proof of payment preview">
-                        <div class="proof-actions">
-                            <button class="btn btn-outline" id="change-proof">Change</button>
-                            <button class="btn btn-outline" id="remove-proof">Remove</button>
-                        </div>
-                    </div>
-                    
-                    <p class="proof-note">Your payment will be verified by our team. You'll receive a confirmation email once verified.</p>
-                </div>
-                
                 <div class="payment-confirmation">
-                    <button id="confirm-payment" class="btn" disabled>I've Made Payment</button>
+                    <button id="confirm-payment" class="btn">I've Made Payment</button>
                     <button id="cancel-payment" class="btn btn-outline">Cancel</button>
                 </div>
                 
@@ -447,9 +359,6 @@
             <p>&copy; 2023 YourStore. All rights reserved.</p>
         </div>
     </footer>
-    
-    <!-- Font Awesome for icons -->
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     
     <script>
         // Firebase configuration
@@ -490,20 +399,8 @@
         const usdAmount = document.getElementById('usd-amount');
         const ghsAmount = document.getElementById('ghs-amount');
         
-        // Proof of payment elements
-        const proofUpload = document.getElementById('proof-upload');
-        const paymentProofInput = document.getElementById('payment-proof');
-        const proofPreview = document.getElementById('proof-preview');
-        const proofImage = document.getElementById('proof-image');
-        const changeProofBtn = document.getElementById('change-proof');
-        const removeProofBtn = document.getElementById('remove-proof');
-        
         // Current exchange rate (1 USD to GHS)
         const exchangeRate = 10.32;
-        
-        // Track proof of payment
-        let paymentProofFile = null;
-        let paymentProofUrl = '';
         
         // Function to convert USD to GHS and update all relevant fields
         function updateCurrencyValues(usdValue) {
@@ -541,113 +438,28 @@
                 }
             });
         
-        // Handle proof of payment upload
-        proofUpload.addEventListener('click', () => {
-            paymentProofInput.click();
-        });
-        
-        paymentProofInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            // Validate file type and size
-            const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-            if (!validTypes.includes(file.type)) {
-                alert('Please upload a valid image (JPEG, PNG) or PDF file.');
-                return;
-            }
-            
-            if (file.size > 5 * 1024 * 1024) { // 5MB
-                alert('File size should be less than 5MB.');
-                return;
-            }
-            
-            paymentProofFile = file;
-            
-            if (file.type.includes('image')) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    proofImage.src = event.target.result;
-                    proofPreview.style.display = 'block';
-                    proofUpload.style.display = 'none';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                // For PDF, show a generic preview
-                proofImage.src = 'https://cdn-icons-png.flaticon.com/512/337/337946.png';
-                proofPreview.style.display = 'block';
-                proofUpload.style.display = 'none';
-            }
-            
-            // Enable confirm payment button
-            confirmPaymentBtn.disabled = false;
-        });
-        
-        // Handle change proof
-        changeProofBtn.addEventListener('click', () => {
-            paymentProofInput.value = '';
-            proofPreview.style.display = 'none';
-            proofUpload.style.display = 'flex';
-        });
-        
-        // Handle remove proof
-        removeProofBtn.addEventListener('click', () => {
-            paymentProofInput.value = '';
-            paymentProofFile = null;
-            proofPreview.style.display = 'none';
-            proofUpload.style.display = 'flex';
-            confirmPaymentBtn.disabled = true;
-        });
-        
-        // Drag and drop functionality
-        proofUpload.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            proofUpload.style.borderColor = var(--primary);
-            proofUpload.style.backgroundColor = 'rgba(79, 70, 229, 0.1)';
-        });
-        
-        proofUpload.addEventListener('dragleave', () => {
-            proofUpload.style.borderColor = '#cbd5e1';
-            proofUpload.style.backgroundColor = 'transparent';
-        });
-        
-        proofUpload.addEventListener('drop', (e) => {
-            e.preventDefault();
-            proofUpload.style.borderColor = '#cbd5e1';
-            proofUpload.style.backgroundColor = 'transparent';
-            
-            if (e.dataTransfer.files.length) {
-                paymentProofInput.files = e.dataTransfer.files;
-                const event = new Event('change');
-                paymentProofInput.dispatchEvent(event);
-            }
-        });
-        
         // Confirm payment
-        confirmPaymentBtn.addEventListener('click', async () => {
+        confirmPaymentBtn.addEventListener('click', () => {
             // Show processing message
             confirmPaymentBtn.classList.add('hidden');
             cancelPaymentBtn.classList.add('hidden');
             processingPayment.classList.remove('hidden');
             
-            try {
-                // In a real app, you would upload the file to Firebase Storage
-                // For this demo, we'll just store the file name
-                const proofFileName = paymentProofFile ? paymentProofFile.name : '';
+            // Update delivery status to "Payment Pending Verification"
+            database.ref('deliveries/' + orderNumber).update({
+                status: 'Payment Pending Verification',
+                paymentSubmittedAt: new Date().toISOString()
+            })
+            .then(() => {
+                // In a real app, you might have webhook or backend verification
+                // For this demo, we'll just show the message
                 
-                // Update delivery status to "Payment Pending Verification"
-                await database.ref('deliveries/' + orderNumber).update({
-                    status: 'Payment Pending Verification',
-                    paymentSubmittedAt: new Date().toISOString(),
-                    paymentProof: proofFileName,
-                    paymentVerified: false
-                });
-                
-                // Redirect to tracking after 3 seconds
+                // Redirect to tracking after 5 seconds (simulating verification)
                 setTimeout(() => {
                     window.location.href = 'tracking.html?order=' + orderNumber;
-                }, 3000);
-            } catch (error) {
+                }, 5000);
+            })
+            .catch((error) => {
                 console.error('Error updating payment status:', error);
                 alert('An error occurred. Please try again.');
                 
@@ -655,23 +467,13 @@
                 confirmPaymentBtn.classList.remove('hidden');
                 cancelPaymentBtn.classList.remove('hidden');
                 processingPayment.classList.add('hidden');
-            }
+            });
         });
         
         // Cancel payment
         cancelPaymentBtn.addEventListener('click', () => {
             if (confirm('Are you sure you want to cancel? Your delivery will not be processed until payment is made.')) {
                 window.location.href = 'delivery.html?order=' + orderNumber;
-            }
-        });
-        
-        // Check if there's a previous payment attempt that was declined
-        database.ref('deliveries/' + orderNumber).on('value', (snapshot) => {
-            if (snapshot.exists()) {
-                const delivery = snapshot.val();
-                if (delivery.paymentVerified === false && delivery.status === 'Payment Declined') {
-                    alert('Your previous payment was not verified. Please upload a valid proof of payment and try again.');
-                }
             }
         });
     </script>
