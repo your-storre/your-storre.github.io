@@ -15,7 +15,6 @@
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
-            --gray: #6b7280;
         }
         
         * {
@@ -359,33 +358,6 @@
             background-color: #fef3c7;
             color: #92400e;
         }
-
-        /* Upload Progress Styles */
-        .upload-progress {
-            margin-top: 1rem;
-            display: none;
-        }
-        
-        .progress-bar {
-            height: 10px;
-            background-color: #e5e7eb;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-bottom: 0.5rem;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background-color: var(--primary);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        
-        .progress-text {
-            font-size: 0.875rem;
-            color: var(--gray);
-            text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -496,14 +468,6 @@
                             <button class="btn btn-outline" id="remove-proof">Remove</button>
                         </div>
                     </div>
-
-                    <!-- Upload Progress -->
-                    <div class="upload-progress" id="upload-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progress-fill"></div>
-                        </div>
-                        <div class="progress-text" id="progress-text">Uploading: 0%</div>
-                    </div>
                     
                     <p class="proof-note">Your payment will be verified by our team. You'll receive a confirmation email once verified.</p>
                 </div>
@@ -544,15 +508,15 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <script>
-        // Firebase configuration - REPLACE WITH YOUR ACTUAL CONFIG
+        // Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyYOUR_API_KEY_HERE",
-            authDomain: "your-project-id.firebaseapp.com",
-            databaseURL: "https://your-project-id.firebaseio.com",
-            projectId: "your-project-id",
-            storageBucket: "your-project-id.appspot.com",
+            apiKey: "YOUR_API_KEY",
+            authDomain: "deliverybookingsystem-2b0b9.firebaseapp.com",
+            databaseURL: "https://deliverybookingsystem-2b0b9-default-rtdb.firebaseio.com",
+            projectId: "deliverybookingsystem-2b0b9",
+            storageBucket: "deliverybookingsystem-2b0b9.appspot.com",
             messagingSenderId: "YOUR_SENDER_ID",
-            appId: "1:YOUR_APP_ID:web:YOUR_APP_KEY"
+            appId: "YOUR_APP_ID"
         };
         
         // Initialize Firebase
@@ -594,16 +558,12 @@
         const changeProofBtn = document.getElementById('change-proof');
         const removeProofBtn = document.getElementById('remove-proof');
         
-        // Upload progress elements
-        const uploadProgress = document.getElementById('upload-progress');
-        const progressFill = document.getElementById('progress-fill');
-        const progressText = document.getElementById('progress-text');
-        
         // Current exchange rate (1 USD to GHS)
         const exchangeRate = 10.32;
         
         // Track proof of payment
         let paymentProofFile = null;
+        let paymentProofUrl = '';
         
         // Check initial payment status
         checkPaymentStatus();
@@ -646,21 +606,18 @@
             paymentContainer.classList.remove('hidden');
             processingPayment.classList.add('hidden');
             waitingVerification.classList.add('hidden');
-            uploadProgress.style.display = 'none';
         }
         
         function showWaitingPage() {
             paymentContainer.classList.add('hidden');
             processingPayment.classList.add('hidden');
             waitingVerification.classList.remove('hidden');
-            uploadProgress.style.display = 'none';
         }
         
         function showProcessing() {
             paymentContainer.classList.add('hidden');
             processingPayment.classList.remove('hidden');
             waitingVerification.classList.add('hidden');
-            uploadProgress.style.display = 'none';
         }
         
         // Function to convert USD to GHS and update all relevant fields
@@ -793,80 +750,46 @@
                 return;
             }
 
-            // Show upload progress
-            uploadProgress.style.display = 'block';
-            confirmPaymentBtn.disabled = true;
-            cancelPaymentBtn.disabled = true;
-
+            showProcessing();
+            
             try {
                 // Generate a unique filename for the proof
                 const fileExt = paymentProofFile.name.split('.').pop();
                 const proofFileName = `payment_proof_${orderNumber}_${Date.now()}.${fileExt}`;
                 
-                // Create storage reference
+                // Upload proof to Firebase Storage
                 const storageRef = storage.ref(`payment_proofs/${orderNumber}/${proofFileName}`);
-                
-                // Start upload task
                 const uploadTask = storageRef.put(paymentProofFile);
                 
-                // Track upload progress
                 uploadTask.on('state_changed',
-                    (snapshot) => {
-                        // Update progress
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        progressFill.style.width = `${progress}%`;
-                        progressText.textContent = `Uploading: ${Math.round(progress)}%`;
-                        
-                        // When upload is complete but before the promise resolves
-                        if (progress === 100) {
-                            progressText.textContent = "Finalizing upload...";
-                        }
-                    },
+                    null,
                     (error) => {
                         console.error('Upload error:', error);
                         showPaymentPage();
                         alert('Failed to upload payment proof. Please try again.');
-                        uploadProgress.style.display = 'none';
-                        confirmPaymentBtn.disabled = false;
-                        cancelPaymentBtn.disabled = false;
                     },
                     async () => {
-                        try {
-                            // Get download URL
-                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                            
-                            // Show processing message
-                            showProcessing();
-                            
-                            // Update delivery status in database
-                            await database.ref('deliveries/' + orderNumber).update({
-                                status: 'Payment Pending Verification',
-                                paymentSubmittedAt: new Date().toISOString(),
-                                paymentProofURL: downloadURL,
-                                paymentProofName: paymentProofFile.name,
-                                paymentVerified: null,
-                                statusMessage: ''
-                            });
-                            
-                            // Show waiting page
-                            showWaitingPage();
-                        } catch (dbError) {
-                            console.error('Database error:', dbError);
-                            showPaymentPage();
-                            alert('Payment submission failed. Please try again.');
-                            uploadProgress.style.display = 'none';
-                            confirmPaymentBtn.disabled = false;
-                            cancelPaymentBtn.disabled = false;
-                        }
+                        // Get download URL
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        
+                        // Update delivery status in database
+                        await database.ref('deliveries/' + orderNumber).update({
+                            status: 'Payment Pending Verification',
+                            paymentSubmittedAt: new Date().toISOString(),
+                            paymentProofURL: downloadURL,
+                            paymentProofName: paymentProofFile.name,
+                            paymentVerified: null,
+                            statusMessage: ''
+                        });
+                        
+                        // Show waiting page
+                        showWaitingPage();
                     }
                 );
             } catch (error) {
                 console.error('Error:', error);
-                uploadProgress.style.display = 'none';
                 showPaymentPage();
                 alert('Payment submission failed. Please try again.');
-                confirmPaymentBtn.disabled = false;
-                cancelPaymentBtn.disabled = false;
             }
         });
         
