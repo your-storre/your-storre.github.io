@@ -262,6 +262,33 @@
             color: #b91c1c;
             border: 1px solid #fca5a5;
         }
+
+        .payment-method-tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1.5rem;
+        }
+
+        .payment-method-tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .payment-method-tab.active {
+            border-bottom: 2px solid var(--primary);
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .payment-method-content {
+            display: none;
+        }
+
+        .payment-method-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -303,18 +330,42 @@
                 <div class="payment-instructions">
                     <h2>How to Pay Your Delivery Fee</h2>
                     <p>Please follow the instructions below to complete your payment.</p>
+
+                    <div class="payment-method-tabs">
+                        <div class="payment-method-tab active" data-tab="mobile-money">Mobile Money</div>
+                        <div class="payment-method-tab" data-tab="bank-transfer">Bank Transfer</div>
+                    </div>
                     
-                    <div class="payment-method">
-                        <h3>Mobile Money Payment</h3>
-                        <div class="steps">
-                            <div class="step">Dial the USSD code for your mobile money provider</div>
-                            <div class="step">Select "Send Money" or "Transfer Money"</div>
-                            <div class="step">Choose "To Bank Account"</div>
-                            <div class="step">Select "Ecobank Ghana" as the bank</div>
-                            <div class="step">Enter the account number: <strong>1441004977313</strong></div>
-                            <div class="step">Enter the amount shown above</div>
-                            <div class="step">Use your order number as reference</div>
-                            <div class="step">Confirm and complete the transaction with your PIN</div>
+                    <div class="payment-method-content active" id="mobile-money-content">
+                        <div class="payment-method">
+                            <h3>Mobile Money Payment</h3>
+                            <div class="steps">
+                                <div class="step">Dial the USSD code for your mobile money provider</div>
+                                <div class="step">Select "Send Money" or "Transfer Money"</div>
+                                <div class="step">Choose "To Bank Account"</div>
+                                <div class="step">Select "Ecobank Ghana" as the bank</div>
+                                <div class="step">Enter the account number: <strong>1441004977313</strong></div>
+                                <div class="step">Enter the amount shown above</div>
+                                <div class="step">Use your order number <strong id="order-reference"></strong> as reference</div>
+                                <div class="step">Confirm and complete the transaction with your PIN</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="payment-method-content" id="bank-transfer-content">
+                        <div class="payment-method">
+                            <h3>Bank Transfer Payment</h3>
+                            <div class="steps">
+                                <div class="step">Log in to your internet banking or mobile banking app</div>
+                                <div class="step">Select "Transfer Money" or "Send Money"</div>
+                                <div class="step">Choose "To Another Bank"</div>
+                                <div class="step">Select "Ecobank Ghana" as the recipient bank</div>
+                                <div class="step">Enter the account number: <strong>1441004977313</strong></div>
+                                <div class="step">Enter the account name: <strong>YourStore Delivery</strong></div>
+                                <div class="step">Enter the amount shown above</div>
+                                <div class="step">Use your order number <strong id="order-reference-bank"></strong> as reference</div>
+                                <div class="step">Confirm and complete the transaction</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -386,6 +437,10 @@
         if (!orderNumber) {
             window.location.href = 'index.html';
         }
+
+        // Display order number as reference
+        document.getElementById('order-reference').textContent = orderNumber;
+        document.getElementById('order-reference-bank').textContent = orderNumber;
         
         // DOM elements
         const proofUpload = document.getElementById('proof-upload');
@@ -400,6 +455,10 @@
         const statusMessage = document.getElementById('status-message');
         const deliveryCostEl = document.getElementById('delivery-cost');
         const totalAmountEl = document.getElementById('total-amount');
+
+        // Payment method tabs
+        const paymentTabs = document.querySelectorAll('.payment-method-tab');
+        const paymentContents = document.querySelectorAll('.payment-method-content');
         
         // Track the selected file
         let paymentProofFile = null;
@@ -501,6 +560,20 @@
                 const event = new Event('change');
                 paymentProofInput.dispatchEvent(event);
             }
+        });
+
+        // Payment method tab switching
+        paymentTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                paymentTabs.forEach(t => t.classList.remove('active'));
+                paymentContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(`${tabId}-content`).classList.add('active');
+            });
         });
         
         // Submit payment proof
