@@ -743,7 +743,7 @@
             showProcessing();
             
             try {
-                // Upload proof to Firebase Storage
+                // Upload proof to Firebase Storage with order number as folder
                 const storageRef = storage.ref(`payment_proofs/${orderNumber}/${Date.now()}_${paymentProofFile.name}`);
                 const uploadTask = storageRef.put(paymentProofFile);
                 
@@ -758,7 +758,7 @@
                         // Get download URL
                         const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
                         
-                        // Update delivery status
+                        // Update delivery status in database
                         await database.ref('deliveries/' + orderNumber).update({
                             status: 'Payment Pending Verification',
                             paymentSubmittedAt: new Date().toISOString(),
