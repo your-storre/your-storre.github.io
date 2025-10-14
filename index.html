@@ -773,6 +773,9 @@
         const orderImage = document.getElementById('order-image');
         const deliveryStatus = document.getElementById('delivery-status');
         
+        // Store current order number for use in book delivery button
+        let currentOrderNumber = '';
+        
         // FAQ functionality
         const faqItems = document.querySelectorAll('.faq-item');
         faqItems.forEach(item => {
@@ -793,6 +796,17 @@
             }
         });
         
+        // Book Delivery Button Handler
+        bookDeliveryBtn.addEventListener('click', () => {
+            if (!currentOrderNumber) {
+                alert('No order selected. Please find your order first.');
+                return;
+            }
+            
+            // Redirect to delivery booking page with order number
+            window.location.href = 'delivery.html?order=' + currentOrderNumber;
+        });
+        
         // Lookup order
         lookupBtn.addEventListener('click', () => {
             const orderNumber = orderNumberInput.value.trim();
@@ -801,6 +815,9 @@
                 alert('Please enter your order number');
                 return;
             }
+            
+            // Store the current order number
+            currentOrderNumber = orderNumber;
             
             // Show loading spinner
             lookupBtn.style.display = 'none';
@@ -813,11 +830,11 @@
                         const orderData = snapshot.val();
                         
                         // Display order details
-                        productName.textContent = orderData.productName;
-                        productDescription.textContent = orderData.productDescription;
-                        orderPrice.textContent = '$' + orderData.productPrice;
-                        orderDate.textContent = 'Purchased: ' + new Date(orderData.orderDate).toLocaleDateString();
-                        orderStatus.textContent = 'Status: ' + orderData.orderStatus;
+                        productName.textContent = orderData.productName || 'Product Name';
+                        productDescription.textContent = orderData.productDescription || 'Product description goes here with all the details about the product.';
+                        orderPrice.textContent = '$' + (orderData.productPrice || '99.99');
+                        orderDate.textContent = 'Purchased: ' + new Date(orderData.orderDate || Date.now()).toLocaleDateString();
+                        orderStatus.textContent = 'Status: ' + (orderData.orderStatus || 'Processing');
                         orderImage.src = orderData.productImage || 'https://via.placeholder.com/400';
                         
                         // Check delivery status
@@ -837,6 +854,12 @@
                                         bookDeliveryBtn.onclick = () => {
                                             window.location.href = 'payment.html?order=' + orderNumber;
                                         };
+                                    } else {
+                                        // Reset to default book delivery if status is something else
+                                        bookDeliveryBtn.innerHTML = '<i class="fas fa-truck"></i> Book Delivery';
+                                        bookDeliveryBtn.onclick = () => {
+                                            window.location.href = 'delivery.html?order=' + orderNumber;
+                                        };
                                     }
                                 } else {
                                     deliveryStatus.textContent = 'Delivery not yet booked';
@@ -845,6 +868,14 @@
                                         window.location.href = 'delivery.html?order=' + orderNumber;
                                     };
                                 }
+                            })
+                            .catch((error) => {
+                                console.error('Error checking delivery status:', error);
+                                deliveryStatus.textContent = 'Delivery not yet booked';
+                                bookDeliveryBtn.innerHTML = '<i class="fas fa-truck"></i> Book Delivery';
+                                bookDeliveryBtn.onclick = () => {
+                                    window.location.href = 'delivery.html?order=' + orderNumber;
+                                };
                             });
                         
                         // Show order modal
